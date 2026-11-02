@@ -62,6 +62,7 @@ data "aws_iam_policy_document" "apply_infrastructure" {
       "logs:List*",
       "rds:Describe*",
       "rds:List*",
+      "kms:ListKeys",
       "kms:ListAliases"
     ]
     resources = ["*"]
@@ -198,6 +199,19 @@ data "aws_iam_policy_document" "apply_infrastructure" {
   }
 
   statement {
+    sid       = "UseBackupStorageForProductionVault"
+    effect    = "Allow"
+    actions   = ["backup-storage:*"]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestedRegion"
+      values   = [var.aws_region]
+    }
+  }
+
+  statement {
     sid     = "ManageProductionEksLogGroup"
     effect  = "Allow"
     actions = ["logs:*"]
@@ -225,6 +239,38 @@ data "aws_iam_policy_document" "apply_infrastructure" {
       test     = "StringEquals"
       variable = "aws:RequestTag/Project"
       values   = [var.project_name]
+    }
+  }
+
+  statement {
+    sid       = "UseKmsForProductionBackupVault"
+    effect    = "Allow"
+    actions   = ["kms:DescribeKey", "kms:GenerateDataKey"]
+    resources = ["arn:${var.aws_partition}:kms:${var.aws_region}:${var.account_id}:key/*"]
+  }
+
+  statement {
+    sid       = "CreateProductionBackupVaultKmsGrants"
+    effect    = "Allow"
+    actions   = ["kms:CreateGrant"]
+    resources = ["arn:${var.aws_partition}:kms:${var.aws_region}:${var.account_id}:key/*"]
+
+    condition {
+      test     = "Bool"
+      variable = "kms:GrantIsForAWSResource"
+      values   = ["true"]
+    }
+
+    condition {
+      test     = "ForAnyValue:StringEquals"
+      variable = "kms:EncryptionContextKeys"
+      values   = ["aws:backup:backup-vault"]
+    }
+
+    condition {
+      test     = "StringLike"
+      variable = "kms:ViaService"
+      values   = ["backup.*.amazonaws.com"]
     }
   }
 
@@ -337,6 +383,7 @@ data "aws_iam_policy_document" "apply_boundary" {
       "logs:List*",
       "rds:Describe*",
       "rds:List*",
+      "kms:ListKeys",
       "kms:ListAliases"
     ]
     resources = ["*"]
@@ -367,12 +414,6 @@ data "aws_iam_policy_document" "apply_boundary" {
       variable = "aws:ResourceTag/Project"
       values   = [var.project_name]
     }
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:RequestedRegion"
-      values   = [var.aws_region]
-    }
   }
 
   statement {
@@ -384,6 +425,7 @@ data "aws_iam_policy_document" "apply_boundary" {
       "ec2:CreateRouteTable",
       "ec2:CreateSecurityGroup",
       "ec2:CreateSubnet",
+      "ec2:CreateTags",
       "ec2:CreateVpc",
       "ec2:CreateVpcEndpoint",
       "ec2:RunInstances"
@@ -400,11 +442,6 @@ data "aws_iam_policy_document" "apply_boundary" {
       values   = [var.project_name]
     }
 
-    condition {
-      test     = "StringEquals"
-      variable = "aws:RequestedRegion"
-      values   = [var.aws_region]
-    }
   }
 
   statement {
@@ -445,12 +482,6 @@ data "aws_iam_policy_document" "apply_boundary" {
       variable = "aws:ResourceTag/Project"
       values   = [var.project_name]
     }
-
-    condition {
-      test     = "StringEquals"
-      variable = "aws:RequestedRegion"
-      values   = [var.aws_region]
-    }
   }
 
   statement {
@@ -471,12 +502,12 @@ data "aws_iam_policy_document" "apply_boundary" {
       variable = "aws:RequestTag/Project"
       values   = [var.project_name]
     }
+  }
 
-    condition {
-      test     = "StringEquals"
-      variable = "aws:RequestedRegion"
-      values   = [var.aws_region]
-    }
+  statement {
+    effect    = "Allow"
+    actions   = ["backup-storage:*"]
+    resources = ["*"]
   }
 
   statement {
@@ -516,11 +547,35 @@ data "aws_iam_policy_document" "apply_boundary" {
       variable = "aws:ResourceTag/Project"
       values   = [var.project_name]
     }
+  }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["kms:DescribeKey", "kms:GenerateDataKey"]
+    resources = ["arn:${var.aws_partition}:kms:${var.aws_region}:${var.account_id}:key/*"]
+  }
+
+  statement {
+    effect    = "Allow"
+    actions   = ["kms:CreateGrant"]
+    resources = ["arn:${var.aws_partition}:kms:${var.aws_region}:${var.account_id}:key/*"]
 
     condition {
-      test     = "StringEquals"
-      variable = "aws:RequestedRegion"
-      values   = [var.aws_region]
+      test     = "Bool"
+      variable = "kms:GrantIsForAWSResource"
+      values   = ["true"]
+    }
+
+    condition {
+      test     = "ForAnyValue:StringEquals"
+      variable = "kms:EncryptionContextKeys"
+      values   = ["aws:backup:backup-vault"]
+    }
+
+    condition {
+      test     = "StringLike"
+      variable = "kms:ViaService"
+      values   = ["backup.*.amazonaws.com"]
     }
   }
 
