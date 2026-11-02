@@ -324,7 +324,6 @@ data "aws_iam_policy_document" "apply_infrastructure" {
 
 data "aws_iam_policy_document" "apply_boundary" {
   statement {
-    sid    = "AllowRegionalDiscovery"
     effect = "Allow"
     actions = [
       "backup:List*",
@@ -347,14 +346,12 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid       = "AllowAmazonLinuxAmiParameterReads"
     effect    = "Allow"
     actions   = ["ssm:GetParameter", "ssm:GetParameters"]
     resources = ["arn:${var.aws_partition}:ssm:${var.aws_region}::parameter/aws/service/ami-amazon-linux-latest/*"]
   }
 
   statement {
-    sid       = "AllowProjectEc2Resources"
     effect    = "Allow"
     actions   = ["ec2:*"]
     resources = ["arn:${var.aws_partition}:ec2:${var.aws_region}:${var.account_id}:*/*"]
@@ -373,7 +370,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid    = "AllowTaggedEc2Creation"
     effect = "Allow"
     actions = [
       "ec2:AllocateAddress",
@@ -406,7 +402,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid    = "AllowProjectEksResources"
     effect = "Allow"
     actions = [
       "eks:*"
@@ -420,7 +415,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid     = "AllowProjectRdsResources"
     effect  = "Allow"
     actions = ["rds:*"]
     resources = [
@@ -432,7 +426,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid     = "AllowProjectBackupResources"
     effect  = "Allow"
     actions = ["backup:*"]
     resources = [
@@ -455,7 +448,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid    = "AllowTaggedBackupResourceCreation"
     effect = "Allow"
     actions = [
       "backup:CreateBackupPlan",
@@ -482,7 +474,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid     = "AllowProjectEksLogGroup"
     effect  = "Allow"
     actions = ["logs:*"]
     resources = [
@@ -492,7 +483,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid       = "CreateTaggedProjectKmsKeys"
     effect    = "Allow"
     actions   = ["kms:CreateKey"]
     resources = ["*"]
@@ -511,7 +501,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid       = "AllowProjectKmsResources"
     effect    = "Allow"
     actions   = ["kms:*"]
     resources = ["arn:${var.aws_partition}:kms:${var.aws_region}:${var.account_id}:key/*"]
@@ -530,7 +519,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid     = "AllowProjectKmsAliases"
     effect  = "Allow"
     actions = ["kms:*"]
     resources = [
@@ -540,7 +528,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid     = "AllowProjectS3Resources"
     effect  = "Allow"
     actions = ["s3:*"]
     resources = [
@@ -552,7 +539,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid       = "AllowProductionTerraformStateListing"
     effect    = "Allow"
     actions   = ["s3:ListBucket"]
     resources = [var.state_bucket_arn]
@@ -565,28 +551,24 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid       = "AllowProductionTerraformStateObjects"
     effect    = "Allow"
     actions   = ["s3:GetObject", "s3:PutObject"]
     resources = ["${var.state_bucket_arn}/${var.production_state_key}"]
   }
 
   statement {
-    sid       = "AllowProductionTerraformLockObject"
     effect    = "Allow"
     actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
     resources = ["${var.state_bucket_arn}/${var.production_state_key}.tflock"]
   }
 
   statement {
-    sid       = "AllowProjectSqsResources"
     effect    = "Allow"
     actions   = ["sqs:*"]
     resources = ["arn:${var.aws_partition}:sqs:${var.aws_region}:${var.account_id}:${var.project_name}-${var.environment}-application"]
   }
 
   statement {
-    sid    = "AllowProjectIamRead"
     effect = "Allow"
     actions = [
       "iam:Get*",
@@ -596,7 +578,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid     = "AllowProjectIamWrites"
     effect  = "Allow"
     actions = ["iam:*"]
     resources = [
@@ -607,7 +588,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid       = "AllowProjectRolePass"
     effect    = "Allow"
     actions   = ["iam:PassRole"]
     resources = ["arn:${var.aws_partition}:iam::${var.account_id}:role/${var.project_role_path}*"]
@@ -620,7 +600,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid       = "AllowRequiredServiceLinkedRoles"
     effect    = "Allow"
     actions   = ["iam:CreateServiceLinkedRole"]
     resources = ["arn:${var.aws_partition}:iam::*:role/aws-service-role/*"]
@@ -633,7 +612,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid       = "DenyStandaloneEc2Tagging"
     effect    = "Deny"
     actions   = ["ec2:CreateTags"]
     resources = ["arn:${var.aws_partition}:ec2:${var.aws_region}:${var.account_id}:*/*"]
@@ -646,7 +624,6 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    sid    = "DenyManagingGitHubRolesAndBoundary"
     effect = "Deny"
     actions = [
       "iam:AttachRolePolicy",
@@ -901,6 +878,11 @@ resource "aws_iam_policy" "apply_boundary" {
 
   lifecycle {
     prevent_destroy = true
+
+    precondition {
+      condition     = length(regexall("\\S", data.aws_iam_policy_document.apply_boundary.json)) <= 6144
+      error_message = "The permissions boundary policy exceeds IAM's 6,144 non-whitespace-character customer-managed policy limit."
+    }
   }
 }
 
