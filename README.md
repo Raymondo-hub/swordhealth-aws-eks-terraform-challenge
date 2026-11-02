@@ -97,20 +97,32 @@ AWS Backup restore testing runs weekly against the latest recovery point in the 
 
 The EKS API endpoint has no public access. Use the private SSM administration host as a port-forwarding tunnel, while running `kubectl` on your workstation. This keeps Kubernetes authentication tied to your local AWS identity instead of the host's instance role. Install the AWS CLI v2 and Session Manager plugin locally, and sign in with an identity whose IAM role ARN is configured as `platform_admin_role_arn`.
 
-In a first terminal, from `terraform/environments`, log in, configure kubeconfig, and point its API URL at the local tunnel:
+Run the commands below from the **infrastructure repository**, not the separate delivery repository. Replace the example `INFRA_REPO` path with the directory where you cloned `swordhealth-aws-eks-terraform-challenge`. Use the same `INFRA_REPO` value in both terminals.
+
+In the first terminal, configure local `kubectl` to use the private endpoint through a local tunnel:
 
 ```bash
+export INFRA_REPO="/Users/ray/devspace/swordhealth-aws-eks-terraform-challenge"
+cd "$INFRA_REPO/terraform/environments"
 export AWS_PROFILE=terraform-lab
 export AWS_REGION=us-east-1
 aws sso login --profile "$AWS_PROFILE"
 
 CLUSTER_NAME="$(terraform output -raw cluster_name)"
+if [ -z "$CLUSTER_NAME" ]; then
+  echo "cluster_name is empty; check that INFRA_REPO points to the infrastructure repository." >&2
+  exit 1
+fi
 CLUSTER_ENDPOINT="$(aws eks describe-cluster \
   --name "$CLUSTER_NAME" \
   --region "$AWS_REGION" \
   --profile "$AWS_PROFILE" \
   --query 'cluster.endpoint' \
   --output text)"
+if [ -z "$CLUSTER_ENDPOINT" ] || [ "$CLUSTER_ENDPOINT" = "None" ]; then
+  echo "Could not read the EKS cluster endpoint; check AWS credentials and cluster access." >&2
+  exit 1
+fi
 CLUSTER_ENDPOINT_HOST="${CLUSTER_ENDPOINT#https://}"
 
 aws eks update-kubeconfig \
@@ -118,25 +130,36 @@ aws eks update-kubeconfig \
   --region "$AWS_REGION" \
   --profile "$AWS_PROFILE" \
   --alias "$CLUSTER_NAME"
+kubectl config use-context "$CLUSTER_NAME"
 KUBECONFIG_CLUSTER="$(kubectl config view --minify -o jsonpath='{.contexts[0].context.cluster}')"
 kubectl config set-cluster "$KUBECONFIG_CLUSTER" \
   --server=https://127.0.0.1:8443 \
   --tls-server-name="$CLUSTER_ENDPOINT_HOST"
 ```
 
-In a second terminal, from the same directory, start the remote-host port forward and leave it running:
+In a second terminal, start the SSM port-forward session and leave it running. Do not run `cd terraform/environments` from the delivery repository; use the infrastructure repository path:
 
 ```bash
+export INFRA_REPO="/Users/ray/devspace/swordhealth-aws-eks-terraform-challenge"
+cd "$INFRA_REPO/terraform/environments"
 export AWS_PROFILE=terraform-lab
 export AWS_REGION=us-east-1
 CLUSTER_NAME="$(terraform output -raw cluster_name)"
 ADMIN_HOST_ID="$(terraform output -raw admin_host_instance_id)"
+if [ -z "$CLUSTER_NAME" ] || [ -z "$ADMIN_HOST_ID" ]; then
+  echo "Terraform outputs are empty; check that INFRA_REPO points to the infrastructure repository." >&2
+  exit 1
+fi
 CLUSTER_ENDPOINT="$(aws eks describe-cluster \
   --name "$CLUSTER_NAME" \
   --region "$AWS_REGION" \
   --profile "$AWS_PROFILE" \
   --query 'cluster.endpoint' \
   --output text)"
+if [ -z "$CLUSTER_ENDPOINT" ] || [ "$CLUSTER_ENDPOINT" = "None" ]; then
+  echo "Could not read the EKS cluster endpoint; check AWS credentials and cluster access." >&2
+  exit 1
+fi
 CLUSTER_ENDPOINT_HOST="${CLUSTER_ENDPOINT#https://}"
 
 aws ssm start-session \
