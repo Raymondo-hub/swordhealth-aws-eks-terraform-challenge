@@ -196,9 +196,32 @@ The application chart should use the configured namespace/service account so EKS
 
 ## GitHub Actions
 
-Configure repository variables `AWS_REGION`, `TF_STATE_BUCKET`, `EKS_ADMIN_ROLE_ARN`, `AWS_TERRAFORM_PLAN_ROLE_ARN`, and `AWS_TERRAFORM_APPLY_ROLE_ARN`. The workflow uses the shared `terraform/environments` root with the production state key, formats, validates, plans and applies only AWS infrastructure. It uploads the exact infrastructure plan for the protected apply job with one-day artifact retention; restrict artifact access because plans contain infrastructure metadata. The development environment is applied independently using its own state key.
+The GitHub OIDC provider and plan/apply roles are managed separately from the EKS environment, in `terraform/github-actions` and the reusable `terraform/modules/github-oidc` module. This root has its own state key so destroying or recreating EKS does not remove the identities needed to run Terraform.
 
-Restrict the plan role to read-only infrastructure and state access. Restrict the apply role to the protected `production` environment and main branch. Kubernetes deployment is intentionally outside this workflow and repository.
+The existing OIDC provider, `GitHubActionsTerraformPlan` role, `GitHubActionsTerraformApply` role, and their current managed policy attachments are scheduled for import by Terraform import blocks on the first plan; they enter the new state only when the reviewed plan is applied. Use a trusted operator AWS profile with IAM permissions and access to the state bucket; do not use either GitHub role to bootstrap itself.
+
+```bash
+export AWS_PROFILE=terraform-lab
+aws sso login --profile "$AWS_PROFILE"
+cd terraform/github-actions
+terraform init \
+  -backend-config="bucket=swordhealth-tfstate-008003619776-us-east-1" \
+  -backend-config="region=us-east-1" \
+  -backend-config="key=iam/github-actions/terraform.tfstate"
+terraform fmt -check -recursive ../
+terraform validate
+terraform plan -out=github-actions.tfplan
+# Review all imports and policy changes before applying.
+terraform apply github-actions.tfplan
+```
+
+The root manages production state access, project-scoped IAM deployment permissions, and the OIDC trust subjects. The plan role is limited to the main branch and same-repository pull requests; the apply role requires the `production` GitHub environment. Restrict that environment to the `main` branch and configure required reviewers before enabling production applies. The plan role uses a custom read-only policy rather than AWS-managed `ReadOnlyAccess`: S3 access is limited to bucket configuration for the two application buckets and the production state/lock objects, while infrastructure discovery is limited to the services this Terraform root manages. Some AWS `List`/`Describe` operations require `Resource = "*"`, so those statements are restricted to the configured region where AWS supports that condition.
+
+After applying, configure repository variables `AWS_REGION`, `TF_STATE_BUCKET`, `EKS_ADMIN_ROLE_ARN`, `AWS_TERRAFORM_PLAN_ROLE_ARN`, and `AWS_TERRAFORM_APPLY_ROLE_ARN`. Use the Terraform outputs for the two GitHub role ARNs. The production workflow in `.github/workflows/terraform-prod.yml` uses the shared `terraform/environments` root and production state key, formats, validates, plans, then applies the exact plan artifact. Plans and artifacts can contain sensitive infrastructure data: keep the repository private, limit repository read access to trusted collaborators, and retain the artifact only as long as needed. The workflow currently expires it after one day. Development is applied independently using its own state key.
+
+The Terraform-managed apply role replaces the existing AWS-managed `PowerUserAccess` attachment with a custom infrastructure policy and attaches the `GitHubActionsTerraformProductionBoundary` permissions boundary. The boundary scopes EKS to the named cluster and its child resources, RDS to production name prefixes, Backup to the production vault/plans, CloudWatch Logs to the EKS log group, KMS to project-tagged keys and named aliases, S3 to the two production buckets and Terraform state objects, SQS to the application queue, and IAM role/policy operations to the project path. EC2 operations are region-limited and require project tags for existing resources or tagged creation requests. Standalone EC2 tagging is explicitly denied to prevent adopting unrelated resources by adding the project tag. The apply role cannot modify either GitHub role or its permissions boundary.
+
+The boundary is an upper limit, not a grant by itself. The custom infrastructure policy grants the service actions; state and IAM permissions are separately scoped. The apply role can access only the production state object and lock object for backend operations; its general S3 permissions cover the two application buckets, not the state bucket. **The service-role permissions are narrower than `PowerUserAccess`, but not fully resource-level least privilege:** EC2, EKS, RDS, AWS Backup, CloudWatch Logs, KMS, and some read-only inventory actions still require wildcard resources within the allowed region/service families. Review CloudTrail/IAM Access Analyzer evidence and refine those ARNs and actions before treating the policy as a production least-privilege control. Kubernetes deployment is intentionally outside this workflow and repository.
 
 ## Database recovery
 
@@ -206,7 +229,7 @@ Restrict the plan role to read-only infrastructure and state access. Restrict th
 - AWS Backup takes daily recovery points in a dedicated vault and retains them for 35 days.
 - AWS Backup runs a weekly restore test. The temporary restore resources are managed by AWS Backup and can incur additional charges.
 - An operator-triggered Terraform point-in-time restore can be enabled using `enable_point_in_time_restore_test`; it creates a separate test DB instance and does not replace production.
-- Keep state access restricted and encrypted. Terraform state includes infrastructure metadata even though RDS manages the master password in Secrets Manager.
+- Keep state access restricted and encrypted. The state bucket blocks public access, enables versioning and SSE-S3 encryption, and denies insecure transport; backend access uses separate plan/apply permissions scoped to the production state and lock objects. Terraform state and saved plans still contain sensitive infrastructure metadata, even though RDS manages the master password in Secrets Manager. Restrict repository/artifact access and test state-version recovery before depending on it.
 
 ## Tear down
 
