@@ -311,7 +311,10 @@ data "aws_iam_policy_document" "apply_infrastructure" {
       "ssm:GetParameter",
       "ssm:GetParameters"
     ]
-    resources = ["arn:${var.aws_partition}:ssm:${var.aws_region}::parameter/aws/service/ami-amazon-linux-latest/*"]
+    resources = [
+      "arn:${var.aws_partition}:ssm:${var.aws_region}::parameter/aws/service/ami-amazon-linux-latest/*",
+      "arn:${var.aws_partition}:ssm:${var.aws_region}::parameter/aws/service/eks/optimized-ami/*"
+    ]
   }
 
   statement {
@@ -346,9 +349,12 @@ data "aws_iam_policy_document" "apply_boundary" {
   }
 
   statement {
-    effect    = "Allow"
-    actions   = ["ssm:GetParameter", "ssm:GetParameters"]
-    resources = ["arn:${var.aws_partition}:ssm:${var.aws_region}::parameter/aws/service/ami-amazon-linux-latest/*"]
+    effect  = "Allow"
+    actions = ["ssm:GetParameter", "ssm:GetParameters"]
+    resources = [
+      "arn:${var.aws_partition}:ssm:${var.aws_region}::parameter/aws/service/ami-amazon-linux-latest/*",
+      "arn:${var.aws_partition}:ssm:${var.aws_region}::parameter/aws/service/eks/optimized-ami/*"
+    ]
   }
 
   statement {
@@ -701,10 +707,13 @@ data "aws_iam_policy_document" "plan_infrastructure_read" {
   }
 
   statement {
-    sid       = "ReadAmazonLinuxAmiParameters"
-    effect    = "Allow"
-    actions   = ["ssm:GetParameter", "ssm:GetParameters"]
-    resources = ["arn:${var.aws_partition}:ssm:${var.aws_region}::parameter/aws/service/ami-amazon-linux-latest/*"]
+    sid     = "ReadAmazonLinuxAmiParameters"
+    effect  = "Allow"
+    actions = ["ssm:GetParameter", "ssm:GetParameters"]
+    resources = [
+      "arn:${var.aws_partition}:ssm:${var.aws_region}::parameter/aws/service/ami-amazon-linux-latest/*",
+      "arn:${var.aws_partition}:ssm:${var.aws_region}::parameter/aws/service/eks/optimized-ami/*"
+    ]
   }
 
   statement {
