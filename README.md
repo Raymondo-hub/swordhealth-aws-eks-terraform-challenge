@@ -198,7 +198,7 @@ The application chart should use the configured namespace/service account so EKS
 
 The GitHub OIDC provider and plan/apply roles are managed separately from the EKS environment, in `terraform/github-actions` and the reusable `terraform/modules/github-oidc` module. This root has its own state key so destroying or recreating EKS does not remove the identities needed to run Terraform.
 
-The existing OIDC provider, `GitHubActionsTerraformPlan` role, `GitHubActionsTerraformApply` role, and their current managed policy attachments are scheduled for import by Terraform import blocks on the first plan; they enter the new state only when the reviewed plan is applied. Use a trusted operator AWS profile with IAM permissions and access to the state bucket; do not use either GitHub role to bootstrap itself.
+The existing OIDC provider, `GitHubActionsTerraformPlan` role, `GitHubActionsTerraformApply` role, plan-role policy attachment, and apply-role state policy are imported into this root's state. The previous `PowerUserAccess` attachment is absent, so Terraform creates the scoped apply policy attachment instead of trying to import it. Review the plan before applying. Use a trusted operator AWS profile with IAM permissions and access to the state bucket; do not use either GitHub role to bootstrap itself.
 
 ```bash
 export AWS_PROFILE=terraform-lab

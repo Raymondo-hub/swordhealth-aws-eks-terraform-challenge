@@ -44,11 +44,6 @@ import {
 }
 
 import {
-  to = module.github_oidc.aws_iam_role_policy_attachment.apply_infrastructure
-  id = "GitHubActionsTerraformApply/arn:aws:iam::aws:policy/PowerUserAccess"
-}
-
-import {
   to = module.github_oidc.aws_iam_role_policy.apply_state
   id = "GitHubActionsTerraformApply:TerraformProductionStateWrite"
 }
