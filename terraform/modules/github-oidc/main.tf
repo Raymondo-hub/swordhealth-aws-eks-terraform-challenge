@@ -823,6 +823,7 @@ data "aws_iam_policy_document" "plan_infrastructure_read" {
     effect = "Allow"
     actions = [
       "s3:GetBucketAcl",
+      "s3:GetBucketCORS",
       "s3:GetBucketOwnershipControls",
       "s3:GetBucketPolicy",
       "s3:GetBucketPublicAccessBlock",
