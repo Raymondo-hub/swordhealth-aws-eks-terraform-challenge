@@ -45,18 +45,20 @@ module "admin_role" {
 module "eks" {
   source = "../modules/eks"
 
-  cluster_name            = "${local.name}-eks"
-  kubernetes_version      = var.kubernetes_version
-  vpc_id                  = module.network.vpc_id
-  private_subnet_ids      = module.network.private_subnets
-  platform_admin_role_arn = var.platform_admin_role_arn
-  admin_host_role_arn     = module.admin_role.arn
-  node_instance_types     = var.node_instance_types
-  node_min_size           = var.node_min_size
-  node_desired_size       = var.node_desired_size
-  node_max_size           = var.node_max_size
-  log_retention_days      = var.log_retention_days
-  tags                    = local.tags
+  cluster_name               = "${local.name}-eks"
+  kubernetes_version         = var.kubernetes_version
+  vpc_id                     = module.network.vpc_id
+  private_subnet_ids         = module.network.private_subnets
+  platform_admin_role_arn    = var.platform_admin_role_arn
+  namespace_editor_role_arns = var.namespace_editor_role_arns
+  application_namespace      = var.application_namespace
+  admin_host_role_arn        = module.admin_role.arn
+  node_instance_types        = var.node_instance_types
+  node_min_size              = var.node_min_size
+  node_desired_size          = var.node_desired_size
+  node_max_size              = var.node_max_size
+  log_retention_days         = var.log_retention_days
+  tags                       = local.tags
 }
 
 module "admin_host" {

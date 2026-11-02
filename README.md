@@ -95,7 +95,7 @@ AWS Backup restore testing runs weekly against the latest recovery point in the 
 
 ## 3. Access the private cluster
 
-The EKS API endpoint has no public access. Use the private SSM administration host as a port-forwarding tunnel, while running `kubectl` on your workstation. This keeps Kubernetes authentication tied to your local AWS identity instead of the host's instance role. Install the AWS CLI v2 and Session Manager plugin locally, and sign in with an identity whose IAM role ARN is configured as `platform_admin_role_arn`.
+The EKS API endpoint has no public access. Use the private SSM administration host as a port-forwarding tunnel, while running `kubectl` on your workstation. This keeps Kubernetes authentication tied to your local AWS identity instead of the host's instance role. Install the AWS CLI v2 and Session Manager plugin locally, and sign in with an IAM role that has an EKS access entry. The configured `platform_admin_role_arn` is a cluster administrator; use the namespace editor role configuration below for teammates who should manage only application workloads.
 
 Run the commands below from the **infrastructure repository**, not the separate delivery repository. Replace the example `INFRA_REPO` path with the directory where you cloned `swordhealth-aws-eks-terraform-challenge`. Use the same `INFRA_REPO` value in both terminals.
 
@@ -177,7 +177,32 @@ kubectl get nodes
 kubectl get pods -A
 ```
 
-The IAM role configured as `platform_admin_role_arn` currently receives cluster-admin access. Prefer a dedicated, tightly controlled operator role, and grant only the Kubernetes permissions operators need. Restrict SSM access to the intended administration host and port-forwarding document; anyone permitted to open an unrestricted shell on that host can use its instance role, which is also authorized as a cluster administrator. The private host can also serve as the network entry point for private Argo CD bootstrap or other administration. Public GitHub-hosted runners cannot reach the private Kubernetes API.
+### Granting teammates namespace-scoped access
+
+The `platform_admin_role_arn` receives cluster-admin access and should remain limited to trusted platform administrators. For teammates who need to deploy or manage workloads only in the application namespace, create or use an AWS IAM Identity Center permission set for the team, assign the intended Identity Center group, and add the resulting IAM role ARN(s) to `namespace_editor_role_arns` in the environment's `.tfvars` file. The role ARN is the `AWSReservedSSO_...` IAM role for that permission set in this AWS account; do not add individual user ARNs.
+
+For production, edit the local, git-ignored `terraform/environments/prod.tfvars`:
+
+```hcl
+namespace_editor_role_arns = [
+  "arn:aws:iam::008003619776:role/aws-reserved/sso.amazonaws.com/us-east-1/AWSReservedSSO_EKSNamespaceEditor_<unique-suffix>"
+]
+```
+
+Use the exact role ARN returned by IAM Identity Center in place of the illustrative suffix above. Then, from `terraform/environments`, create and review a plan before applying:
+
+```bash
+terraform plan -var-file=prod.tfvars -out=prod.tfplan
+terraform show prod.tfplan
+# Apply only after confirming the plan adds the intended access entry and namespace-scoped association.
+terraform apply prod.tfplan
+```
+
+Terraform creates an EKS access entry and associates `AmazonEKSEditPolicy` scoped to the configured `application_namespace` (`swordhealth` in production). AWS documents this policy as allowing edits to most Kubernetes resources in that namespace; this includes sensitive permissions such as managing namespace Secrets and using `pods/exec`. It does not grant cluster-admin or access to other namespaces. If those namespace-level permissions are too broad, use a custom Kubernetes `Role`/`RoleBinding` via an EKS access-entry group instead of the managed edit policy. See [EKS access policy permissions](https://docs.aws.amazon.com/eks/latest/userguide/access-policy-permissions.html).
+
+The teammate also needs AWS permissions to describe this cluster and start/resume/terminate an SSM port-forward session to the specific private admin host, scoped to the `AWS-StartPortForwardingSessionToRemoteHost` document. Do not grant shell-session documents or broad SSM access; follow [Session Manager access-control guidance](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager-getting-started-restrict-access.html). They install AWS CLI v2, `kubectl`, and the Session Manager plugin, sign in through their assigned SSO permission set, and follow the two-terminal connection steps above with their own AWS profile. Their `aws eks update-kubeconfig` and `kubectl` commands then authenticate as the IAM Identity Center role listed in `namespace_editor_role_arns`.
+
+The private host is only the network tunnel; Kubernetes authentication/authorization uses each teammate's own IAM role. The host's instance role and `platform_admin_role_arn` remain cluster-admin principals. Review the SSM session policy carefully because the remote-host port-forward document can connect to network destinations reachable from the host. Public GitHub-hosted runners cannot reach the private Kubernetes API.
 
 ## 4. Bootstrap and access Argo CD
 

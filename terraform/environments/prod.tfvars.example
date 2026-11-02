@@ -8,6 +8,7 @@ database_subnet_cidrs               = ["10.20.32.0/24", "10.20.33.0/24"]
 single_nat_gateway                  = false
 kubernetes_version                  = "1.35"
 platform_admin_role_arn             = "arn:aws:iam::123456789012:role/eks-platform-admin"
+namespace_editor_role_arns          = []
 node_instance_types                 = ["m6i.large"]
 node_min_size                       = 2
 node_desired_size                   = 2

@@ -73,6 +73,17 @@ variable "platform_admin_role_arn" {
   }
 }
 
+variable "namespace_editor_role_arns" {
+  description = "IAM role ARNs granted edit access only in the application namespace."
+  type        = set(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for role_arn in var.namespace_editor_role_arns : can(regex("^arn:aws[a-z-]*:iam::[0-9]{12}:role/", role_arn))])
+    error_message = "Every namespace editor must be an IAM role ARN."
+  }
+}
+
 variable "node_instance_types" {
   type    = list(string)
   default = ["m6i.large"]

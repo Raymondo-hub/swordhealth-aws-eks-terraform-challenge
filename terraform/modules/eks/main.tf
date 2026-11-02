@@ -19,26 +19,42 @@ module "cluster" {
   authentication_mode                      = "API"
   enable_cluster_creator_admin_permissions = false
 
-  access_entries = {
-    platform_admin = {
-      principal_arn = var.platform_admin_role_arn
-      policy_associations = {
-        cluster_admin = {
-          policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = { type = "cluster" }
+  access_entries = merge(
+    {
+      platform_admin = {
+        principal_arn = var.platform_admin_role_arn
+        policy_associations = {
+          cluster_admin = {
+            policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+            access_scope = { type = "cluster" }
+          }
         }
       }
-    }
-    private_admin_host = {
-      principal_arn = var.admin_host_role_arn
-      policy_associations = {
-        cluster_admin = {
-          policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = { type = "cluster" }
+      private_admin_host = {
+        principal_arn = var.admin_host_role_arn
+        policy_associations = {
+          cluster_admin = {
+            policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+            access_scope = { type = "cluster" }
+          }
         }
       }
+    },
+    {
+      for role_arn in var.namespace_editor_role_arns : role_arn => {
+        principal_arn = role_arn
+        policy_associations = {
+          namespace_editor = {
+            policy_arn = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSEditPolicy"
+            access_scope = {
+              type       = "namespace"
+              namespaces = [var.application_namespace]
+            }
+          }
+        }
+      } if role_arn != var.platform_admin_role_arn && role_arn != var.admin_host_role_arn
     }
-  }
+  )
 
   addons = {
     coredns    = {}

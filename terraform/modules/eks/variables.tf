@@ -9,6 +9,18 @@ variable "platform_admin_role_arn" {
     error_message = "Use an IAM role ARN, not a user ARN."
   }
 }
+variable "namespace_editor_role_arns" {
+  type    = set(string)
+  default = []
+
+  validation {
+    condition     = alltrue([for role_arn in var.namespace_editor_role_arns : can(regex("^arn:aws[a-z-]*:iam::[0-9]{12}:role/", role_arn))])
+    error_message = "Every namespace editor must be an IAM role ARN."
+  }
+}
+variable "application_namespace" {
+  type = string
+}
 variable "admin_host_role_arn" {
   type = string
 }
