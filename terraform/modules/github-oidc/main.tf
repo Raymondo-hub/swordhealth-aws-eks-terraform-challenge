@@ -708,6 +708,13 @@ data "aws_iam_policy_document" "plan_infrastructure_read" {
   }
 
   statement {
+    sid       = "ReadPlanRoleForTerraformProvider"
+    effect    = "Allow"
+    actions   = ["iam:GetRole"]
+    resources = ["arn:${var.aws_partition}:iam::${var.account_id}:role/${var.plan_role_name}"]
+  }
+
+  statement {
     sid    = "ReadProjectIamConfiguration"
     effect = "Allow"
     actions = [
