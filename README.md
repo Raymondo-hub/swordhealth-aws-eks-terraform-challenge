@@ -2,6 +2,8 @@
 
 This repository provisions reusable AWS infrastructure with Terraform. It does not deploy application workloads or Kubernetes manifests. Argo CD is bootstrapped into the cluster with Helm after infrastructure creation; application source, charts, and Argo CD application configuration belong in a separate application-delivery repository.
 
+See the [production architecture diagram](docs/architecture.md) for the infrastructure, networking, access, and GitOps deployment flow across both repositories.
+
 ## What this repository provisions
 
 - Reusable, environment-parameterized two-AZ VPC with public, private and isolated database subnets, per-AZ NAT gateways and tagged subnets for EKS and load balancer discovery.
