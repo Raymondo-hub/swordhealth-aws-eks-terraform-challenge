@@ -35,7 +35,7 @@ terraform/
 
 ## Prerequisites
 
-- Terraform 1.17.1 or later and AWS CLI v2.
+- Terraform 1.17.1 (tested; the configuration requires Terraform 1.10.0 or later) and AWS CLI v2.
 - An AWS identity authorized to deploy the infrastructure.
 - An existing IAM role for human administrators, supplied as `platform_admin_role_arn`.
 - Permissions to create the listed AWS resources, pass the Terraform-created service roles, and manage the remote state bucket.
@@ -63,7 +63,7 @@ The same Terraform root and modules are used for both environments; only the var
 cd ../environments
 cp prod.tfvars.example prod.tfvars
 # Edit the region, account-specific admin role, and CIDRs as needed.
-terraform init \
+terraform init -reconfigure \
   -backend-config="bucket=swordhealth-tfstate-008003619776-us-east-1" \
   -backend-config="region=us-east-1" \
   -backend-config="key=prod/eks/terraform.tfstate"
@@ -97,7 +97,7 @@ AWS Backup restore testing runs weekly against the latest recovery point in the 
 
 The EKS API endpoint has no public access. Use the private SSM administration host as a port-forwarding tunnel, while running `kubectl` on your workstation. This keeps Kubernetes authentication tied to your local AWS identity instead of the host's instance role. Install the AWS CLI v2 and Session Manager plugin locally, and sign in with an IAM role that has an EKS access entry. The configured `platform_admin_role_arn` is a cluster administrator; use the namespace editor role configuration below for teammates who should manage only application workloads.
 
-Run the commands below from the **infrastructure repository**, not the separate delivery repository. Replace the example `INFRA_REPO` path with the directory where you cloned `swordhealth-aws-eks-terraform-challenge`. Use the same `INFRA_REPO` value in both terminals.
+Run the commands below from the **infrastructure repository**, not the separate delivery repository. Replace the example `INFRA_REPO` path with the directory where you cloned `swordhealth-aws-eks-terraform-challenge`. Replace `terraform-lab` with the AWS CLI profile configured for your account and IAM Identity Center permission set. Use the same values in both terminals.
 
 In the first terminal, configure local `kubectl` to use the private endpoint through a local tunnel:
 
@@ -206,7 +206,7 @@ The private host is only the network tunnel; Kubernetes authentication/authoriza
 
 ## 4. Bootstrap and access Argo CD
 
-Argo CD and application deployment are managed from the separate delivery repository, not by this Terraform root. After applying the infrastructure, pushing the delivery repository to its configured `main` branch, and establishing the SSM tunnel to the private EKS API, run `./scripts/bootstrap-argocd.sh` from the delivery repository. The idempotent script installs or upgrades the pinned Argo CD Helm chart and applies its root Application. See the delivery repository README for prerequisites and details.
+Argo CD and application deployment are managed from the separate delivery repository, not by this Terraform root. After applying the infrastructure, pushing the delivery repository to its configured `main` branch, and establishing the SSM tunnel to the private EKS API, run `./scripts/bootstrap-argocd.sh` from the delivery repository. Bootstrap requires a cluster-admin identity because it installs Argo CD CRDs, creates the `argocd` namespace, and registers the root Application; a namespace-editor role is not sufficient. The idempotent script installs or upgrades the pinned Argo CD Helm chart and applies its root Application. See the delivery repository README for prerequisites and details.
 
 The Argo CD server remains a private `ClusterIP`. To access it, run this in another terminal while the SSM tunnel is active:
 
