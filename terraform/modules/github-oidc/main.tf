@@ -738,6 +738,21 @@ resource "aws_iam_role" "apply" {
 
 data "aws_iam_policy_document" "plan_infrastructure_read" {
   statement {
+    sid    = "ReadBackupPlansAndSelections"
+    effect = "Allow"
+    actions = [
+      "backup:GetBackupPlan",
+      "backup:GetBackupSelection",
+      "backup:GetRestoreTestingPlan",
+      "backup:GetRestoreTestingSelection"
+    ]
+    resources = [
+      "arn:${var.aws_partition}:backup:${var.aws_region}:${var.account_id}:backup-plan:*",
+      "arn:${var.aws_partition}:backup:${var.aws_region}:${var.account_id}:restore-testing-plan:${replace(var.project_name, "-", "_")}_${replace(var.environment, "-", "_")}_mysql*"
+    ]
+  }
+
+  statement {
     sid    = "ReadRegionalInfrastructureInventory"
     effect = "Allow"
     actions = [
@@ -822,14 +837,21 @@ data "aws_iam_policy_document" "plan_infrastructure_read" {
     sid    = "ReadApplicationBucketConfiguration"
     effect = "Allow"
     actions = [
+      "s3:GetAccelerateConfiguration",
       "s3:GetBucketAcl",
       "s3:GetBucketCORS",
+      "s3:GetBucketLogging",
+      "s3:GetBucketObjectLockConfiguration",
       "s3:GetBucketOwnershipControls",
       "s3:GetBucketPolicy",
       "s3:GetBucketPublicAccessBlock",
+      "s3:GetBucketRequestPayment",
       "s3:GetBucketTagging",
       "s3:GetBucketVersioning",
+      "s3:GetBucketWebsite",
       "s3:GetEncryptionConfiguration",
+      "s3:GetLifecycleConfiguration",
+      "s3:GetReplicationConfiguration",
       "s3:ListBucket"
     ]
     resources = [
