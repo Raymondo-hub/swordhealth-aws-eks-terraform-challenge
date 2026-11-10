@@ -137,7 +137,7 @@ variable "database_max_allocated_storage" {
 
 variable "database_backup_retention_days" {
   type    = number
-  default = 7
+  default = 35
 }
 
 variable "aws_backup_retention_days" {
