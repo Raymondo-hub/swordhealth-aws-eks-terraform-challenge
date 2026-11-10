@@ -16,6 +16,6 @@ node_max_size                       = 6
 database_instance_class             = "db.t4g.micro"
 database_multi_az                   = false
 database_deletion_protection        = true
-database_backup_retention_days      = 7
+database_backup_retention_days      = 35
 application_namespace               = "swordhealth"
 application_service_account_name    = "node-example"

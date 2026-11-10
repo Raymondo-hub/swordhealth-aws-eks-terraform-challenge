@@ -63,7 +63,7 @@ variable "deletion_protection" {
 
 variable "backup_retention_days" {
   type    = number
-  default = 7
+  default = 35
 }
 
 variable "backup_vault_retention_days" {
