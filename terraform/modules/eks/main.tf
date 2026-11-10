@@ -70,6 +70,7 @@ module "cluster" {
   cloudwatch_log_group_retention_in_days = var.log_retention_days
   create_cloudwatch_log_group            = true
   encryption_config                      = { resources = ["secrets"] }
+  kms_key_administrators                 = var.kms_key_administrators
 
   eks_managed_node_groups = {
     system = {
