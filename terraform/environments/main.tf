@@ -58,9 +58,13 @@ module "eks" {
   node_desired_size          = var.node_desired_size
   node_max_size              = var.node_max_size
   log_retention_days         = var.log_retention_days
-  tags                       = local.tags
-}
 
+  kms_key_administrators = [
+    "arn:aws:iam::008003619776:role/GitHubActionsTerraformPlan"
+  ]
+
+  tags = local.tags
+}
 module "admin_host" {
   source = "../modules/admin-host"
 
@@ -93,6 +97,7 @@ module "mysql" {
   backup_retention_days             = var.database_backup_retention_days
   backup_vault_retention_days       = var.aws_backup_retention_days
   restore_test_schedule             = var.restore_test_schedule
+  backup_window                     = var.database_backup_window
   enable_point_in_time_restore_test = var.enable_point_in_time_restore_test
   tags                              = local.tags
 }
