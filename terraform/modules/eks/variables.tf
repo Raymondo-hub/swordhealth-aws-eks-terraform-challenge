@@ -29,6 +29,13 @@ variable "node_instance_types" {
 }
 variable "node_min_size" {
   type = number
+  
+}
+
+variable "database_backup_window" {
+  description = "Preferred RDS backup window in UTC"
+  type        = string
+  default     = "03:00-05:00"
 }
 variable "node_desired_size" {
   type = number
@@ -43,4 +50,17 @@ variable "log_retention_days" {
 variable "tags" {
   type    = map(string)
   default = {}
+}
+variable "kms_key_administrators" {
+  description = "IAM role ARNs allowed to administer the EKS KMS encryption key"
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition = alltrue([
+      for role_arn in var.kms_key_administrators :
+      can(regex("^arn:aws[a-z-]*:iam::[0-9]{12}:role/", role_arn))
+    ])
+    error_message = "Every KMS key administrator must be an IAM role ARN."
+  }
 }

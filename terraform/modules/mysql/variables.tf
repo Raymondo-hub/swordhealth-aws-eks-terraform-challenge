@@ -77,10 +77,10 @@ variable "backup_schedule" {
 }
 
 variable "backup_window" {
-  type    = string
-  default = "04:00-04:30"
+  description = "Preferred RDS backup window in UTC"
+  type        = string
+  default     = "03:00-05:00"
 }
-
 variable "maintenance_window" {
   type    = string
   default = "sun:05:00-sun:06:00"
