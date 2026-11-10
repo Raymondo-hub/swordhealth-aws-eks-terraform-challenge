@@ -94,6 +94,12 @@ variable "node_min_size" {
   default = 2
 }
 
+variable "database_backup_window" {
+  description = "Production RDS backup window in UTC"
+  type        = string
+  default     = "03:00-05:00"
+}
+
 variable "node_desired_size" {
   type    = number
   default = 2
